@@ -37,6 +37,14 @@ body { font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; -webkit-fon
     pointer-events: none;
 }
 
+.sidebar-panel {
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-nav {
+    flex: 1;
+    min-height: 0;
+}
 .sidebar-link {
     display: flex;
     align-items: center;
@@ -46,13 +54,40 @@ body { font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif; -webkit-fon
     font-size: 0.875rem;
     font-weight: 500;
     color: #94a3b8;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, color 0.2s, padding 0.2s;
+    text-decoration: none;
+    white-space: nowrap;
 }
 .sidebar-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 .sidebar-link.active {
     background: linear-gradient(to right, rgba(2, 132, 199, 0.3), rgba(124, 58, 237, 0.2));
     color: #fff;
     border: 1px solid rgba(14, 165, 233, 0.2);
+}
+.sidebar-collapsed .sidebar-link {
+    position: relative;
+}
+.sidebar-collapsed .sidebar-link:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(100% + 0.5rem);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.5rem;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+.sidebar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-primary {

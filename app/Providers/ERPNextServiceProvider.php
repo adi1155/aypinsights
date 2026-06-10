@@ -6,17 +6,23 @@ use App\Contracts\ERPNext\APRepositoryInterface;
 use App\Contracts\ERPNext\ARRepositoryInterface;
 use App\Contracts\ERPNext\ExpenseRepositoryInterface;
 use App\Contracts\ERPNext\FinancialRepositoryInterface;
+use App\Contracts\ERPNext\AttendanceRepositoryInterface;
 use App\Contracts\ERPNext\PayrollRepositoryInterface;
+use App\Contracts\ERPNext\ProductionRepositoryInterface;
 use App\Repositories\ERPNext\DummyAPRepository;
 use App\Repositories\ERPNext\DummyARRepository;
 use App\Repositories\ERPNext\DummyExpenseRepository;
 use App\Repositories\ERPNext\DummyFinancialRepository;
+use App\Repositories\ERPNext\DummyAttendanceRepository;
 use App\Repositories\ERPNext\DummyPayrollRepository;
+use App\Repositories\ERPNext\DummyProductionRepository;
 use App\Repositories\ERPNext\ERPNextAPRepository;
 use App\Repositories\ERPNext\ERPNextARRepository;
 use App\Repositories\ERPNext\ERPNextExpenseRepository;
 use App\Repositories\ERPNext\ERPNextFinancialRepository;
+use App\Repositories\ERPNext\ERPNextAttendanceRepository;
 use App\Repositories\ERPNext\ERPNextPayrollRepository;
+use App\Repositories\ERPNext\ERPNextProductionRepository;
 use App\Services\ERPNext\ERPNextClient;
 use Illuminate\Support\ServiceProvider;
 
@@ -66,6 +72,22 @@ class ERPNextServiceProvider extends ServiceProvider
             return $useLive()
                 ? new ERPNextPayrollRepository($client)
                 : new DummyPayrollRepository;
+        });
+
+        $this->app->bind(AttendanceRepositoryInterface::class, function ($app) use ($useLive) {
+            $client = $app->make(ERPNextClient::class);
+
+            return $useLive()
+                ? new ERPNextAttendanceRepository($client)
+                : new DummyAttendanceRepository;
+        });
+
+        $this->app->bind(ProductionRepositoryInterface::class, function ($app) use ($useLive) {
+            $client = $app->make(ERPNextClient::class);
+
+            return $useLive()
+                ? new ERPNextProductionRepository($client)
+                : new DummyProductionRepository;
         });
     }
 }

@@ -6,7 +6,9 @@ use App\Mail\ExecutiveDashboardReport;
 use App\Models\ScheduledReport;
 use App\Services\ERPNext\DashboardAggregator;
 use App\Services\ERPNext\FinancialService;
+use App\Services\ERPNext\AttendanceService;
 use App\Services\ERPNext\PayrollService;
+use App\Services\ERPNext\ProductionService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -17,7 +19,7 @@ class SendScheduledReportEmail implements ShouldQueue
 
     public function __construct(public int $scheduledReportId) {}
 
-    public function handle(FinancialService $financial, DashboardAggregator $ceo, PayrollService $payroll): void
+    public function handle(FinancialService $financial, DashboardAggregator $ceo, PayrollService $payroll, AttendanceService $attendance, ProductionService $production): void
     {
         $report = ScheduledReport::with('user')->findOrFail($this->scheduledReportId);
         if (! $report->is_active) {
@@ -29,6 +31,8 @@ class SendScheduledReportEmail implements ShouldQueue
             'ceo' => $ceo->getCeoDashboard($filters),
             'daily_closing' => $financial->getDailyClosingDashboard($filters),
             'payroll' => $payroll->getDashboard($filters),
+            'attendance' => $attendance->getDashboard($filters),
+            'production' => $production->getDashboard($filters),
             default => $financial->getDailyClosingDashboard($filters),
         };
 

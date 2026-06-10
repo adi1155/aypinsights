@@ -6,7 +6,7 @@
         <h3 class="font-semibold text-white mb-4">Create Schedule</h3>
         <form method="POST" action="{{ route('settings.scheduled.store') }}" class="space-y-3">
             @csrf
-            <select name="report_type" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white"><option value="ceo">CEO</option><option value="daily_closing">Daily Closing</option><option value="ap">AP</option><option value="ar">AR</option><option value="expense">Expense</option><option value="payroll">Payroll</option></select>
+            <select name="report_type" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white"><option value="ceo">CEO</option><option value="daily_closing">Daily Closing</option><option value="ap">AP</option><option value="ar">AR</option><option value="expense">Expense</option><option value="payroll">Payroll</option><option value="attendance">Attendance</option><option value="production">Production</option></select>
             <select name="format" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white"><option value="pdf">PDF</option><option value="csv">CSV</option></select>
             <select name="frequency" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white"><option value="daily">Daily</option><option value="weekly">Weekly</option></select>
             <input type="time" name="delivery_time" value="08:00" class="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white">

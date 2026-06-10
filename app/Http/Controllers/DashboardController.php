@@ -10,7 +10,9 @@ use App\Services\ERPNext\ARService;
 use App\Services\ERPNext\DashboardAggregator;
 use App\Services\ERPNext\ExpenseService;
 use App\Services\ERPNext\FinancialService;
+use App\Services\ERPNext\AttendanceService;
 use App\Services\ERPNext\PayrollService;
+use App\Services\ERPNext\ProductionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -94,6 +96,26 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function attendance(Request $request, AttendanceService $service)
+    {
+        $filters = $this->sharedFilters($request);
+
+        return view('dashboards.attendance', [
+            'data' => $service->getDashboard($filters),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function production(Request $request, ProductionService $service)
+    {
+        $filters = $this->sharedFilters($request);
+
+        return view('dashboards.production', [
+            'data' => $service->getDashboard($filters),
+            'filters' => $filters,
+        ]);
+    }
+
     public function export(Request $request, ReportExporter $exporter, string $type, string $dashboard)
     {
         $filters = $this->sharedFilters($request);
@@ -103,6 +125,8 @@ class DashboardController extends Controller
             'ar' => app(ARService::class)->getDashboard($filters),
             'expense' => app(ExpenseService::class)->getDashboard($filters),
             'payroll' => app(PayrollService::class)->getDashboard($filters),
+            'attendance' => app(AttendanceService::class)->getDashboard($filters),
+            'production' => app(ProductionService::class)->getDashboard($filters),
             'ceo' => app(DashboardAggregator::class)->getCeoDashboard($filters),
             default => abort(404),
         };
