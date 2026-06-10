@@ -24,6 +24,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/ap', [DashboardController::class, 'ap'])->name('dashboard.ap')->middleware('permission:view ap dashboard');
     Route::get('/ar', [DashboardController::class, 'ar'])->name('dashboard.ar')->middleware('permission:view ar dashboard');
     Route::get('/expense', [DashboardController::class, 'expense'])->name('dashboard.expense')->middleware('permission:view expense dashboard');
+    Route::get('/payroll', [DashboardController::class, 'payroll'])->name('dashboard.payroll')->middleware('permission:view payroll dashboard');
     Route::get('/export/{type}/{dashboard}', [DashboardController::class, 'export'])->name('dashboard.export');
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');

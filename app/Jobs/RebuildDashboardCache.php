@@ -7,6 +7,7 @@ use App\Services\ERPNext\ARService;
 use App\Services\ERPNext\DashboardAggregator;
 use App\Services\ERPNext\ExpenseService;
 use App\Services\ERPNext\FinancialService;
+use App\Services\ERPNext\PayrollService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,7 @@ class RebuildDashboardCache implements ShouldQueue
         ARService $ar,
         APService $ap,
         ExpenseService $expense,
+        PayrollService $payroll,
         DashboardAggregator $ceo,
     ): void {
         Cache::flush();
@@ -29,6 +31,7 @@ class RebuildDashboardCache implements ShouldQueue
         $ar->getDashboard($this->filters);
         $ap->getDashboard($this->filters);
         $expense->getDashboard($this->filters);
+        $payroll->getDashboard($this->filters);
         $ceo->getCeoDashboard($this->filters);
     }
 }

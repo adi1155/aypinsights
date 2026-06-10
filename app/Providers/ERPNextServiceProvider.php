@@ -6,14 +6,17 @@ use App\Contracts\ERPNext\APRepositoryInterface;
 use App\Contracts\ERPNext\ARRepositoryInterface;
 use App\Contracts\ERPNext\ExpenseRepositoryInterface;
 use App\Contracts\ERPNext\FinancialRepositoryInterface;
+use App\Contracts\ERPNext\PayrollRepositoryInterface;
 use App\Repositories\ERPNext\DummyAPRepository;
 use App\Repositories\ERPNext\DummyARRepository;
 use App\Repositories\ERPNext\DummyExpenseRepository;
 use App\Repositories\ERPNext\DummyFinancialRepository;
+use App\Repositories\ERPNext\DummyPayrollRepository;
 use App\Repositories\ERPNext\ERPNextAPRepository;
 use App\Repositories\ERPNext\ERPNextARRepository;
 use App\Repositories\ERPNext\ERPNextExpenseRepository;
 use App\Repositories\ERPNext\ERPNextFinancialRepository;
+use App\Repositories\ERPNext\ERPNextPayrollRepository;
 use App\Services\ERPNext\ERPNextClient;
 use Illuminate\Support\ServiceProvider;
 
@@ -55,6 +58,14 @@ class ERPNextServiceProvider extends ServiceProvider
             return $useLive()
                 ? new ERPNextExpenseRepository($client)
                 : new DummyExpenseRepository;
+        });
+
+        $this->app->bind(PayrollRepositoryInterface::class, function ($app) use ($useLive) {
+            $client = $app->make(ERPNextClient::class);
+
+            return $useLive()
+                ? new ERPNextPayrollRepository($client)
+                : new DummyPayrollRepository;
         });
     }
 }

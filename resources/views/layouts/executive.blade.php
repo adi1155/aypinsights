@@ -12,6 +12,7 @@
             request()->routeIs('dashboard.ap') => ['AP dashboard', 'Purchase invoices', 'Aging data', 'Charts'],
             request()->routeIs('dashboard.ar') => ['AR dashboard', 'Sales invoices', 'Collections', 'Charts'],
             request()->routeIs('dashboard.expense') => ['Expense dashboard', 'Expense claims', 'Cost centers', 'Charts'],
+            request()->routeIs('dashboard.payroll') => ['Payroll dashboard', 'Salary slips', 'Payroll entries', 'Charts'],
             default => ['Loading page', 'Connecting to ERPNext', 'Preparing view'],
         };
         $awaitCharts = request()->routeIs('dashboard.*');
@@ -59,6 +60,9 @@
                 @endcan
                 @can('view expense dashboard')
                 <a href="{{ route('dashboard.expense') }}" class="sidebar-link {{ request()->routeIs('dashboard.expense') ? 'active' : '' }}">Expense Dashboard</a>
+                @endcan
+                @can('view payroll dashboard')
+                <a href="{{ route('dashboard.payroll') }}" class="sidebar-link {{ request()->routeIs('dashboard.payroll') ? 'active' : '' }}">Payroll Dashboard</a>
                 @endcan
                 <hr class="my-4 border-white/10">
                 <a href="{{ route('settings.index') }}" class="sidebar-link">Settings</a>

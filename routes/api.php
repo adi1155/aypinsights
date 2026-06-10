@@ -8,5 +8,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('dashboard')->group(
     Route::get('/ap', [DashboardApiController::class, 'ap']);
     Route::get('/ar', [DashboardApiController::class, 'ar']);
     Route::get('/expense', [DashboardApiController::class, 'expense']);
+    Route::get('/payroll', [DashboardApiController::class, 'payroll']);
     Route::get('/ceo', [DashboardApiController::class, 'ceo']);
 });

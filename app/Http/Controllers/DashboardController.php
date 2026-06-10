@@ -10,6 +10,7 @@ use App\Services\ERPNext\ARService;
 use App\Services\ERPNext\DashboardAggregator;
 use App\Services\ERPNext\ExpenseService;
 use App\Services\ERPNext\FinancialService;
+use App\Services\ERPNext\PayrollService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -83,6 +84,16 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function payroll(Request $request, PayrollService $service)
+    {
+        $filters = $this->sharedFilters($request);
+
+        return view('dashboards.payroll', [
+            'data' => $service->getDashboard($filters),
+            'filters' => $filters,
+        ]);
+    }
+
     public function export(Request $request, ReportExporter $exporter, string $type, string $dashboard)
     {
         $filters = $this->sharedFilters($request);
@@ -91,6 +102,7 @@ class DashboardController extends Controller
             'ap' => app(APService::class)->getDashboard($filters),
             'ar' => app(ARService::class)->getDashboard($filters),
             'expense' => app(ExpenseService::class)->getDashboard($filters),
+            'payroll' => app(PayrollService::class)->getDashboard($filters),
             'ceo' => app(DashboardAggregator::class)->getCeoDashboard($filters),
             default => abort(404),
         };
@@ -109,6 +121,13 @@ class DashboardController extends Controller
         foreach (array_merge($bs, $pl) as $key => $value) {
             if (is_numeric($value) || is_string($value)) {
                 $rows[] = [ucwords(str_replace('_', ' ', $key)), $value];
+            }
+        }
+        if (empty($rows)) {
+            foreach ($service['kpis'] ?? [] as $key => $value) {
+                if (is_numeric($value) || is_string($value)) {
+                    $rows[] = [ucwords(str_replace('_', ' ', $key)), $value];
+                }
             }
         }
 

@@ -8,6 +8,7 @@ use App\Services\ERPNext\ARService;
 use App\Services\ERPNext\DashboardAggregator;
 use App\Services\ERPNext\ExpenseService;
 use App\Services\ERPNext\FinancialService;
+use App\Services\ERPNext\PayrollService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,6 +45,11 @@ class DashboardApiController extends Controller
     }
 
     public function expense(Request $request, ExpenseService $service): JsonResponse
+    {
+        return response()->json($service->getDashboard($this->filters($request)));
+    }
+
+    public function payroll(Request $request, PayrollService $service): JsonResponse
     {
         return response()->json($service->getDashboard($this->filters($request)));
     }

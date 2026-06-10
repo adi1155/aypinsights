@@ -19,7 +19,7 @@ class ExecutiveDashboardSeeder extends Seeder
     {
         $permissions = [
             'view daily closing', 'view ap dashboard', 'view ar dashboard',
-            'view expense dashboard', 'manage users', 'manage companies',
+            'view expense dashboard', 'view payroll dashboard', 'manage users', 'manage companies',
             'view audit logs', 'export reports',
         ];
 
@@ -30,10 +30,10 @@ class ExecutiveDashboardSeeder extends Seeder
         $roles = [
             'CEO' => $permissions,
             'CFO' => $permissions,
-            'Director' => array_slice($permissions, 0, 5),
+            'Director' => array_slice($permissions, 0, 6),
             'Finance' => [
                 'view daily closing', 'view ap dashboard', 'view ar dashboard',
-                'view expense dashboard', 'export reports',
+                'view expense dashboard', 'view payroll dashboard', 'export reports',
             ],
             'Branch Manager' => [
                 'view daily closing', 'view ar dashboard', 'view expense dashboard', 'export reports',
