@@ -4,16 +4,16 @@
     class="glass-card overflow-hidden"
     x-data="createDataTable(@js($rows), @js($columns), @js($title), {{ (int) ($perPage ?? 10) }})"
 >
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b ayp-border px-5 py-4">
         <div>
-            <h3 class="text-sm font-semibold text-slate-300" x-text="title"></h3>
-            <p class="mt-0.5 text-xs text-slate-500" x-show="rows.length > 0">
+            <h3 class="text-sm font-semibold ayp-heading" x-text="title"></h3>
+            <p class="mt-0.5 text-xs ayp-muted" x-show="rows.length > 0">
                 <span x-text="rows.length"></span> record(s)
             </p>
         </div>
         <button
             type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700/50 bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-900/50 disabled:cursor-not-allowed disabled:opacity-40"
+            class="ayp-export-btn inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40"
             @click="exportExcel()"
             :disabled="rows.length === 0"
         >
@@ -24,23 +24,23 @@
 
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
-            <thead class="bg-white/5 text-xs uppercase text-slate-500">
+            <thead class="ayp-table-head text-xs uppercase">
                 <tr>
                     <template x-for="col in columns" :key="col">
                         <th class="px-5 py-3" x-text="col"></th>
                     </template>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-white/5">
+            <tbody class="divide-y ayp-border">
                 <template x-if="rows.length === 0">
                     <tr>
-                        <td :colspan="columns.length" class="px-5 py-8 text-center text-slate-500">No data</td>
+                        <td :colspan="columns.length" class="ayp-table-empty px-5 py-8 text-center">No data</td>
                     </tr>
                 </template>
                 <template x-for="(row, index) in paginatedRows" :key="page + '-' + index">
-                    <tr class="transition hover:bg-white/5">
+                    <tr class="ayp-table-row transition">
                         <template x-for="(cell, cellIndex) in rowValues(row)" :key="cellIndex">
-                            <td class="px-5 py-3 text-slate-300" x-text="formatCell(cell)"></td>
+                            <td class="ayp-table-cell px-5 py-3" x-text="formatCell(cell)"></td>
                         </template>
                     </tr>
                 </template>
@@ -49,17 +49,17 @@
     </div>
 
     <div
-        class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-5 py-3 text-xs text-slate-400"
+        class="flex flex-wrap items-center justify-between gap-3 border-t ayp-border px-5 py-3 text-xs ayp-muted"
         x-show="rows.length > perPage"
     >
         <p>
-            Showing <span class="text-slate-200" x-text="rangeStart"></span>–<span class="text-slate-200" x-text="rangeEnd"></span>
-            of <span class="text-slate-200" x-text="rows.length"></span>
+            Showing <span class="ayp-text font-medium" x-text="rangeStart"></span>–<span class="ayp-text font-medium" x-text="rangeEnd"></span>
+            of <span class="ayp-text font-medium" x-text="rows.length"></span>
         </p>
         <div class="flex flex-wrap items-center gap-1">
             <button
                 type="button"
-                class="rounded-lg border border-white/10 px-2.5 py-1 transition hover:bg-white/5 disabled:opacity-40"
+                class="ayp-btn-ghost rounded-lg border ayp-border px-2.5 py-1 disabled:opacity-40"
                 @click="goToPage(page - 1)"
                 :disabled="page <= 1"
             >Prev</button>
@@ -67,14 +67,14 @@
                 <button
                     type="button"
                     class="min-w-[2rem] rounded-lg border px-2.5 py-1 transition"
-                    :class="p === page ? 'border-sky-600 bg-sky-600/20 text-sky-300' : 'border-white/10 hover:bg-white/5'"
+                    :class="p === page ? 'ayp-page-active' : 'ayp-border ayp-btn-ghost'"
                     @click="goToPage(p)"
                     x-text="p"
                 ></button>
             </template>
             <button
                 type="button"
-                class="rounded-lg border border-white/10 px-2.5 py-1 transition hover:bg-white/5 disabled:opacity-40"
+                class="ayp-btn-ghost rounded-lg border ayp-border px-2.5 py-1 disabled:opacity-40"
                 @click="goToPage(page + 1)"
                 :disabled="page >= totalPages"
             >Next</button>

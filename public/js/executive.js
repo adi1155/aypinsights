@@ -3,6 +3,8 @@ window.formatCurrency = (value, currency = 'PKR') => {
     return `${currency} ${Number(value).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`;
 };
 
+window.__aypCharts = window.__aypCharts || [];
+
 window.initApexChart = (elementId, options) => {
     const el = document.querySelector(`#${elementId}`);
     if (!el || typeof ApexCharts === 'undefined') return null;
@@ -10,12 +12,23 @@ window.initApexChart = (elementId, options) => {
     const chart = new ApexCharts(el, {
         chart: { background: 'transparent', toolbar: { show: false }, animations: { enabled: true } },
         theme: { mode: isLight ? 'light' : 'dark' },
-        grid: { borderColor: 'rgba(148,163,184,0.1)' },
+        grid: { borderColor: isLight ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.1)' },
         ...options,
     });
     chart.render();
+    window.__aypCharts.push(chart);
     return chart;
 };
+
+window.addEventListener('ayp-theme-change', (e) => {
+    const isLight = e.detail === 'light';
+    window.__aypCharts.forEach((chart) => {
+        chart.updateOptions({
+            theme: { mode: isLight ? 'light' : 'dark' },
+            grid: { borderColor: isLight ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.1)' },
+        });
+    });
+});
 
 window.createDataTable = (rows, columns, title, perPage = 10) => ({
     rows: Array.isArray(rows) ? rows : [],

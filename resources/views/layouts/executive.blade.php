@@ -7,8 +7,15 @@
         this.sidebarCollapsed = !this.sidebarCollapsed;
         localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed ? 'true' : 'false');
     }
-}" x-init="$watch('theme', v => { document.documentElement.setAttribute('data-theme', v); localStorage.setItem('theme', v); })">
+}" x-init="document.documentElement.setAttribute('data-theme', theme); $watch('theme', v => { document.documentElement.setAttribute('data-theme', v); localStorage.setItem('theme', v); window.dispatchEvent(new CustomEvent('ayp-theme-change', { detail: v })); })">
 <head>
+    <script>
+        (function () {
+            var stored = localStorage.getItem('theme');
+            var fallback = document.documentElement.getAttribute('data-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', stored || fallback);
+        })();
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -39,8 +46,7 @@
     @stack('head')
 </head>
 <body class="min-h-screen ayp-loading"
-      data-progress-steps='@json($progressSteps)'
-      :class="theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'">
+      data-progress-steps='@json($progressSteps)'>
     <div class="flex min-h-screen">
         {{-- Mobile overlay --}}
         <div
@@ -53,18 +59,18 @@
 
         {{-- Sidebar --}}
         <aside
-            class="sidebar-panel fixed inset-y-0 left-0 z-40 border-r border-white/10 bg-slate-900/95 backdrop-blur-xl transition-all duration-300 ease-in-out lg:static"
+            class="sidebar-panel fixed inset-y-0 left-0 z-40 border-r backdrop-blur-xl transition-all duration-300 ease-in-out lg:static"
             :class="[
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
                 sidebarCollapsed ? 'sidebar-collapsed w-64 lg:w-[4.5rem]' : 'w-64'
             ]"
         >
-            <div class="flex h-16 shrink-0 items-center border-b border-white/10" :class="sidebarCollapsed ? 'justify-center px-2' : 'px-4'">
+            <div class="flex h-16 shrink-0 items-center border-b ayp-border" :class="sidebarCollapsed ? 'justify-center px-2' : 'px-4'">
                 <div class="flex items-center gap-3 overflow-hidden" :class="sidebarCollapsed ? 'justify-center' : ''">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-violet-600 font-bold text-white">AY</div>
                     <div class="min-w-0" x-show="!sidebarCollapsed" x-transition.opacity>
-                        <p class="truncate text-sm font-bold text-white">AYP Insights</p>
-                        <p class="truncate text-xs text-slate-500">Executive Cockpit</p>
+                        <p class="truncate text-sm font-bold ayp-heading">AYP Insights</p>
+                        <p class="truncate text-xs ayp-muted">Executive Cockpit</p>
                     </div>
                 </div>
             </div>
@@ -117,7 +123,7 @@
                     <span class="sidebar-label" x-show="!sidebarCollapsed">Production</span>
                 </a>
                 @endcan
-                <hr class="my-4 border-white/10" :class="sidebarCollapsed ? 'mx-1' : ''">
+                <hr class="my-4 ayp-border" :class="sidebarCollapsed ? 'mx-1' : ''">
                 <a href="{{ route('settings.index') }}" class="sidebar-link" title="Settings" :class="sidebarCollapsed ? 'justify-center !px-2' : ''">
                     <svg class="sidebar-icon h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
                     <span class="sidebar-label" x-show="!sidebarCollapsed">Settings</span>
@@ -145,11 +151,11 @@
                 </a>
                 @endrole
             </nav>
-            <div class="hidden shrink-0 border-t border-white/10 p-2 lg:block" :class="sidebarCollapsed ? 'px-1' : ''">
+            <div class="hidden shrink-0 border-t ayp-border p-2 lg:block" :class="sidebarCollapsed ? 'px-1' : ''">
                 <button
                     type="button"
                     @click="toggleSidebarCollapse()"
-                    class="flex w-full items-center rounded-lg p-2 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                    class="ayp-btn-ghost flex w-full items-center rounded-lg p-2"
                     :class="sidebarCollapsed ? 'justify-center' : 'gap-2 px-3'"
                     :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
                 >
@@ -162,24 +168,24 @@
         </aside>
 
         <div class="flex min-w-0 flex-1 flex-col">
-            <header class="sticky top-0 z-30 border-b border-white/10 bg-slate-900/80 backdrop-blur-xl px-4 py-3 lg:px-8">
+            <header class="ayp-header-bar sticky top-0 z-30 border-b backdrop-blur-xl px-4 py-3 lg:px-8">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div class="flex items-center gap-2">
-                        <button @click="sidebarOpen = !sidebarOpen" class="rounded-lg p-2 text-slate-400 hover:bg-white/5 lg:hidden" title="Open menu">
+                        <button @click="sidebarOpen = !sidebarOpen" class="ayp-btn-ghost rounded-lg p-2 lg:hidden" title="Open menu">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
-                        <button @click="toggleSidebarCollapse()" class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 lg:block" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+                        <button @click="toggleSidebarCollapse()" class="ayp-btn-ghost hidden rounded-lg p-2 lg:block" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
                             <svg class="h-5 w-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
                         </button>
-                        <h1 class="text-lg font-bold text-white">@yield('page-title')</h1>
+                        <h1 class="text-lg font-bold ayp-heading">@yield('page-title')</h1>
                     </div>
                     <div class="flex flex-wrap items-center gap-3">
                         @isset($filters)
                         <form method="GET" class="flex flex-wrap items-center gap-2">
-                            <input type="date" name="from_date" value="{{ $filters['from_date'] ?? now()->startOfMonth()->toDateString() }}" title="From date" class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white">
-                            <span class="text-slate-500 text-sm">to</span>
-                            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? now()->toDateString() }}" title="To date" class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white">
-                            <select name="company" class="rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 text-sm text-white max-w-[220px]">
+                            <input type="date" name="from_date" value="{{ $filters['from_date'] ?? now()->startOfMonth()->toDateString() }}" title="From date" class="ayp-input rounded-lg px-3 py-1.5 text-sm">
+                            <span class="ayp-muted text-sm">to</span>
+                            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? now()->toDateString() }}" title="To date" class="ayp-input rounded-lg px-3 py-1.5 text-sm">
+                            <select name="company" class="ayp-input rounded-lg px-3 py-1.5 text-sm max-w-[220px]">
                                 @foreach($erpCompanies ?? [] as $erpCompany)
                                     <option value="{{ $erpCompany }}" @selected(($filters['company'] ?? '') === $erpCompany)>{{ $erpCompany }}</option>
                                 @endforeach
@@ -187,10 +193,10 @@
                             <button type="submit" class="btn-primary text-xs py-1.5">Apply</button>
                         </form>
                         @endisset
-                        <button @click="theme = theme === 'dark' ? 'light' : 'dark'" class="rounded-lg border border-white/10 p-2 text-slate-400 hover:text-white" title="Toggle theme">
+                        <button @click="theme = theme === 'dark' ? 'light' : 'dark'" class="ayp-btn-ghost rounded-lg border ayp-border p-2" title="Toggle theme">
                             <span x-text="theme === 'dark' ? '☀️' : '🌙'"></span>
                         </button>
-                        <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="text-sm text-slate-400 hover:text-white">Logout</button></form>
+                        <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="ayp-btn-ghost text-sm">Logout</button></form>
                     </div>
                 </div>
             </header>

@@ -4,8 +4,8 @@
     @foreach($kpis as $label => $value)
         @php $type = $types[$label] ?? 'currency'; @endphp
         <div class="kpi-card animate-fade-in">
-            <p class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ str_replace('_', ' ', $label) }}</p>
-            <p class="mt-2 text-xl font-bold text-white lg:text-2xl">
+            <p class="kpi-label text-xs font-medium uppercase tracking-wider">{{ str_replace('_', ' ', $label) }}</p>
+            <p class="kpi-value mt-2 text-xl font-bold lg:text-2xl">
                 @if($type === 'count')
                     {{ number_format((float) $value, 0) }}
                 @elseif($type === 'decimal')
