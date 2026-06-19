@@ -16,6 +16,7 @@ return [
     ],
     'cache_ttl' => (int) env('DASHBOARD_CACHE_TTL', 600),
     'ceo_max_execution' => (int) env('CEO_MAX_EXECUTION', 180),
+    'payroll_max_execution' => (int) env('PAYROLL_MAX_EXECUTION', 300),
     'ias_bs_gl_max_rows' => (int) env('IAS_BS_GL_MAX_ROWS', 6000),
     'ias_pl_gl_max_rows' => (int) env('IAS_PL_GL_MAX_ROWS', 4000),
     'ias_gl_page_size' => (int) env('IAS_GL_PAGE_SIZE', 500),

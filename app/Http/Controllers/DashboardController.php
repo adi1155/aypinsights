@@ -88,6 +88,8 @@ class DashboardController extends Controller
 
     public function payroll(Request $request, PayrollService $service)
     {
+        set_time_limit((int) config('erpnext.payroll_max_execution', 300));
+
         $filters = $this->sharedFilters($request);
 
         return view('dashboards.payroll', [

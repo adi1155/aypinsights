@@ -26,6 +26,26 @@
     <x-data-table title="Salary Disbursements" :columns="['Payment','Employee','Amount','Date','Mode']" :rows="collect($data['tables']['payment_history']??[])->map(fn($r)=>[$r['name']??'',$r['employee']??'',$r['paid_amount']??0,$r['posting_date']??'',$r['mode_of_payment']??''])->all()" />
 </div>
 <div class="mt-8">
+    <x-data-table
+        title="Employee Payroll Summary"
+        :columns="['Employee Code','Employee Name','Basic Salary','Allowances (any type)','Gross Salary','Deduction','Net Payable','Monthly Leaves','Absent','Loan','Advance']"
+        :rows="collect($data['tables']['employee_payroll_summary'] ?? [])->map(fn($r)=>[
+            $r['employee_code'] ?? '',
+            $r['employee_name'] ?? '',
+            $r['basic_salary'] ?? 0,
+            $r['allowances'] ?? 0,
+            $r['gross_salary'] ?? 0,
+            $r['deduction'] ?? 0,
+            $r['net_payable'] ?? 0,
+            $r['monthly_leaves'] ?? 0,
+            $r['absent'] ?? 0,
+            $r['loan'] ?? 0,
+            $r['advance'] ?? 0,
+        ])->all()"
+        :perPage="25"
+    />
+</div>
+<div class="mt-8">
     <x-data-table title="Department Headcount & Tenure" :columns="['Department','Headcount','Avg Tenure (months)']" :rows="collect($data['tables']['department_headcount']??[])->map(fn($r)=>[$r['department']??'',$r['headcount']??0,$r['avg_tenure_months']??0])->all()" />
 </div>
 @endsection

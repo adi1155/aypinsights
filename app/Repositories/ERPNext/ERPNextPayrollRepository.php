@@ -32,7 +32,7 @@ class ERPNextPayrollRepository implements PayrollRepositoryInterface
     public function getSalarySlips(array $filters = []): array
     {
         $company = $this->defaultCompany($filters);
-        $erpFilters = $this->buildFilters($filters, [
+        $erpFilters = $this->buildPayrollPeriodFilters($filters, [
             ['company', '=', $company],
             ['docstatus', '!=', 2],
         ]);
@@ -41,8 +41,8 @@ class ERPNextPayrollRepository implements PayrollRepositoryInterface
             'name', 'employee', 'employee_name', 'department', 'designation', 'branch',
             'posting_date', 'start_date', 'end_date', 'status', 'docstatus',
             'gross_pay', 'net_pay', 'total_deduction', 'payment_days', 'total_working_days',
-            'payroll_entry',
-        ], 1000);
+            'leave_without_pay', 'absent_days', 'payroll_entry',
+        ], 2000);
 
         return array_map(fn ($row) => [
             'name' => $row['name'],
@@ -62,6 +62,8 @@ class ERPNextPayrollRepository implements PayrollRepositoryInterface
             'total_deduction' => (float) ($row['total_deduction'] ?? 0),
             'payment_days' => (float) ($row['payment_days'] ?? 0),
             'total_working_days' => (float) ($row['total_working_days'] ?? 0),
+            'leave_without_pay' => (float) ($row['leave_without_pay'] ?? 0),
+            'absent_days' => (float) ($row['absent_days'] ?? 0),
             'payroll_entry' => $row['payroll_entry'] ?? null,
         ], $rows);
     }
@@ -186,6 +188,186 @@ class ERPNextPayrollRepository implements PayrollRepositoryInterface
             'mode_of_payment' => $row['mode_of_payment'] ?? 'Bank',
             'reference_no' => $row['reference_no'] ?? '',
         ], $rows);
+    }
+
+    public function getEmployeePayrollSummary(array $filters = [], array $preloadedSlips = []): array
+    {
+        $fromDate = $filters['from_date'] ?? now()->startOfMonth()->toDateString();
+        $toDate = $filters['to_date'] ?? now()->toDateString();
+
+        $slips = collect($preloadedSlips ?: $this->getSalarySlips($filters))
+            ->where('docstatus', 1)
+            ->filter(fn ($slip) => $this->salarySlipInPeriod($slip, $fromDate, $toDate))
+            ->groupBy(fn ($slip) => $slip['employee_id'] ?? $slip['employee'])
+            ->map(fn ($group) => $group->sortByDesc('end_date')->sortByDesc('posting_date')->first());
+
+        $leavesByEmployee = $this->leaveDaysByEmployee($filters);
+        $loansByEmployee = $this->deductionAmountsByEmployee($filters, ['loan']);
+        $advancesByEmployee = $this->deductionAmountsByEmployee($filters, ['adv']);
+
+        return $slips->map(function ($slip) use ($leavesByEmployee, $loansByEmployee, $advancesByEmployee) {
+            $employeeId = $slip['employee_id'] ?? $slip['employee'] ?? '';
+            $gross = (float) ($slip['gross_pay'] ?? 0);
+            $basic = $gross;
+            $allowances = 0.0;
+
+            $monthlyLeaves = (float) ($leavesByEmployee[$employeeId] ?? $slip['leave_without_pay'] ?? 0);
+            $absent = (float) ($slip['absent_days'] ?? 0);
+
+            return [
+                'employee_code' => $employeeId,
+                'employee_name' => $slip['employee'] ?? 'N/A',
+                'basic_salary' => $basic,
+                'allowances' => $allowances,
+                'gross_salary' => $gross,
+                'deduction' => (float) ($slip['total_deduction'] ?? 0),
+                'net_payable' => (float) ($slip['net_pay'] ?? 0),
+                'monthly_leaves' => $monthlyLeaves,
+                'absent' => $absent,
+                'loan' => (float) ($loansByEmployee[$employeeId] ?? 0),
+                'advance' => (float) ($advancesByEmployee[$employeeId] ?? 0),
+            ];
+        })->sortBy('employee_name')->values()->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $slip
+     */
+    protected function salarySlipInPeriod(array $slip, string $fromDate, string $toDate): bool
+    {
+        $start = $slip['start_date'] ?? null;
+        $end = $slip['end_date'] ?? null;
+
+        if ($start && $end) {
+            return $start <= $toDate && $end >= $fromDate;
+        }
+
+        $postingDate = $slip['posting_date'] ?? null;
+
+        return $postingDate && $postingDate >= $fromDate && $postingDate <= $toDate;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  array<int, array<int, mixed>>  $defaults
+     * @return array<int, array<int, mixed>>
+     */
+    protected function buildPayrollPeriodFilters(array $filters, array $defaults = []): array
+    {
+        $built = $defaults;
+
+        if (! empty($filters['from_date'])) {
+            $built[] = ['end_date', '>=', $filters['from_date']];
+        }
+        if (! empty($filters['to_date'])) {
+            $built[] = ['start_date', '<=', $filters['to_date']];
+        }
+
+        return $built;
+    }
+
+    /**
+     * @return array<string, float>
+     */
+    protected function leaveDaysByEmployee(array $filters): array
+    {
+        $company = $this->defaultCompany($filters);
+        $from = $filters['from_date'] ?? now()->startOfMonth()->toDateString();
+        $to = $filters['to_date'] ?? now()->toDateString();
+
+        $rows = $this->safeList('Leave Application', [
+            ['company', '=', $company],
+            ['docstatus', '=', 1],
+            ['status', '=', 'Approved'],
+            ['from_date', '<=', $to],
+            ['to_date', '>=', $from],
+        ], ['employee', 'total_leave_days'], 2000);
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $employee = $row['employee'] ?? '';
+            if ($employee === '') {
+                continue;
+            }
+            $totals[$employee] = ($totals[$employee] ?? 0) + (float) ($row['total_leave_days'] ?? 0);
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @return array<string, float>
+     */
+    protected function absentDaysByEmployee(array $filters): array
+    {
+        $company = $this->defaultCompany($filters);
+        $erpFilters = $this->buildDateRangeOnField($filters, 'attendance_date', [
+            ['company', '=', $company],
+            ['docstatus', '=', 1],
+            ['status', '=', 'Absent'],
+        ]);
+
+        $rows = $this->safeList('Attendance', $erpFilters, ['employee'], 5000);
+        $totals = [];
+
+        foreach ($rows as $row) {
+            $employee = $row['employee'] ?? '';
+            if ($employee === '') {
+                continue;
+            }
+            $totals[$employee] = ($totals[$employee] ?? 0) + 1;
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param  array<int, string>  $keywords
+     * @return array<string, float>
+     */
+    protected function deductionAmountsByEmployee(array $filters, array $keywords): array
+    {
+        $company = $this->defaultCompany($filters);
+        $erpFilters = $this->buildDateRangeOnField($filters, 'payroll_date', [
+            ['company', '=', $company],
+            ['docstatus', '=', 1],
+            ['type', '=', 'Deduction'],
+        ]);
+
+        $rows = $this->safeList('Additional Salary', $erpFilters, [
+            'employee', 'amount', 'salary_component',
+        ], 2000);
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $component = strtolower((string) ($row['salary_component'] ?? ''));
+            $matches = collect($keywords)->contains(fn ($keyword) => str_contains($component, strtolower($keyword)));
+            if (! $matches) {
+                continue;
+            }
+
+            $employee = $row['employee'] ?? '';
+            if ($employee === '') {
+                continue;
+            }
+            $totals[$employee] = ($totals[$employee] ?? 0) + (float) ($row['amount'] ?? 0);
+        }
+
+        if (in_array('loan', $keywords, true)) {
+            $loanFilters = $this->buildDateRangeOnField($filters, 'posting_date', [
+                ['docstatus', '=', 1],
+            ]);
+            $loanRows = $this->safeList('Loan Repayment', $loanFilters, ['applicant', 'amount_paid'], 2000);
+            foreach ($loanRows as $row) {
+                $employee = $row['applicant'] ?? '';
+                if ($employee === '') {
+                    continue;
+                }
+                $totals[$employee] = ($totals[$employee] ?? 0) + (float) ($row['amount_paid'] ?? 0);
+            }
+        }
+
+        return $totals;
     }
 
     /**

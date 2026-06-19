@@ -4,6 +4,7 @@ namespace App\Services\ERPNext;
 
 use App\Contracts\ERPNext\PayrollRepositoryInterface;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class PayrollService
@@ -15,25 +16,35 @@ class PayrollService
         $cacheKey = 'payroll_dashboard:'.md5(json_encode($filters));
 
         return Cache::remember($cacheKey, config('erpnext.cache_ttl'), function () use ($filters) {
-            $slips = collect($this->repository->getSalarySlips($filters));
+            set_time_limit((int) config('erpnext.payroll_max_execution', 300));
+
+            $fromDate = $filters['from_date'] ?? now()->startOfMonth()->toDateString();
+            $toDate = $filters['to_date'] ?? now()->toDateString();
+            $trendFrom = now()->subMonths(5)->startOfMonth()->toDateString();
+
+            $trendFilters = array_merge($filters, [
+                'from_date' => $trendFrom,
+                'to_date' => $toDate,
+            ]);
+
+            $allSlips = collect($this->repository->getSalarySlips($trendFilters));
             $entries = collect($this->repository->getPayrollEntries($filters));
             $employees = collect($this->repository->getActiveEmployees($filters));
             $additional = collect($this->repository->getAdditionalSalaries($filters));
             $advances = collect($this->repository->getEmployeeAdvances($filters));
-            $payments = collect($this->repository->getEmployeePayments($filters));
+            $allPayments = collect($this->repository->getEmployeePayments($trendFilters));
 
-            $fromDate = $filters['from_date'] ?? now()->startOfMonth()->toDateString();
-            $toDate = $filters['to_date'] ?? now()->toDateString();
-
-            $submitted = $slips->where('docstatus', 1);
-            $periodSlips = $submitted->filter(function ($s) use ($fromDate, $toDate) {
-                $d = $s['posting_date'] ?? $s['end_date'] ?? null;
-
-                return $d && $d >= $fromDate && $d <= $toDate;
-            });
-            $pendingSlips = $slips->where('docstatus', 0);
+            $submitted = $allSlips->where('docstatus', 1);
+            $periodSlips = $submitted->filter(fn ($s) => $this->salarySlipInPeriod(
+                $s,
+                $fromDate,
+                $toDate
+            ));
+            $pendingSlips = $allSlips->where('docstatus', 0);
             $pendingEntries = $entries->filter(fn ($e) => ($e['docstatus'] ?? 0) !== 1);
             $openAdvances = $advances->filter(fn ($a) => ($a['outstanding'] ?? 0) > 0);
+            $periodPayments = $allPayments->filter(fn ($p) => ($p['posting_date'] ?? '') >= $fromDate
+                && ($p['posting_date'] ?? '') <= $toDate);
 
             $totalGross = (float) $periodSlips->sum('gross_pay');
             $totalNet = (float) $periodSlips->sum('net_pay');
@@ -55,7 +66,7 @@ class PayrollService
                     'additional_salary_total' => (float) $additional->sum('amount'),
                     'employee_advances_outstanding' => (float) $openAdvances->sum('outstanding'),
                     'average_net_salary' => $employeesPaid > 0 ? round($totalNet / $employeesPaid) : 0,
-                    'bank_disbursement_period' => (float) $payments->sum('paid_amount'),
+                    'bank_disbursement_period' => (float) $periodPayments->sum('paid_amount'),
                     'avg_payment_days' => round($periodSlips->avg('payment_days') ?: 0, 1),
                 ],
                 'kpi_types' => [
@@ -66,7 +77,7 @@ class PayrollService
                     'avg_payment_days' => 'decimal',
                 ],
                 'charts' => [
-                    'monthly_payroll_trend' => $this->monthlyPayrollTrend($filters),
+                    'monthly_payroll_trend' => $this->monthlyPayrollTrendFromSlips($submitted),
                     'department_wise' => [
                         'labels' => $periodSlips->groupBy('department')->keys()->take(10)->values()->all(),
                         'series' => $periodSlips->groupBy('department')->map->sum('net_pay')->values()->take(10)->all(),
@@ -87,7 +98,7 @@ class PayrollService
                             (float) $additional->sum('amount'),
                         ],
                     ],
-                    'disbursement_trend' => $this->monthlyDisbursementTrend($filters),
+                    'disbursement_trend' => $this->monthlyDisbursementTrendFromPayments($allPayments),
                 ],
                 'tables' => [
                     'pending_salary_slips' => $pendingSlips->take(15)->values()->all(),
@@ -95,19 +106,27 @@ class PayrollService
                     'top_earners' => $periodSlips->sortByDesc('net_pay')->take(10)->values()->all(),
                     'unpaid_advances' => $openAdvances->sortByDesc('outstanding')->values()->all(),
                     'additional_salary_items' => $additional->sortByDesc('amount')->values()->all(),
-                    'payment_history' => $payments->sortByDesc('posting_date')->take(15)->values()->all(),
+                    'payment_history' => $periodPayments->sortByDesc('posting_date')->take(15)->values()->all(),
                     'department_headcount' => $employees->groupBy('department')->map(fn ($g, $d) => [
                         'department' => $d,
                         'headcount' => $g->count(),
                         'avg_tenure_months' => round($g->avg(fn ($e) => Carbon::parse($e['date_of_joining'] ?? now())->diffInMonths(now())) ?: 0),
                     ])->sortByDesc('headcount')->values()->all(),
+                    'employee_payroll_summary' => $this->repository->getEmployeePayrollSummary(
+                        $filters,
+                        $periodSlips->values()->all()
+                    ),
                 ],
                 'currency' => config('erpnext.default_currency', 'PKR'),
             ];
         });
     }
 
-    protected function monthlyPayrollTrend(array $filters = []): array
+    /**
+     * @param  Collection<int, array<string, mixed>>  $submittedSlips
+     * @return array{labels: array<int, string>, gross: array<int, float>, net: array<int, float>}
+     */
+    protected function monthlyPayrollTrendFromSlips(Collection $submittedSlips): array
     {
         $labels = [];
         $gross = [];
@@ -116,23 +135,21 @@ class PayrollService
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
             $labels[] = $month->format('M Y');
-            $monthFilters = array_merge($filters, [
-                'from_date' => $month->copy()->startOfMonth()->toDateString(),
-                'to_date' => $month->copy()->endOfMonth()->toDateString(),
-            ]);
-            $slips = collect($this->repository->getSalarySlips($monthFilters))->where('docstatus', 1);
-            $gross[] = (float) $slips->sum('gross_pay');
-            $net[] = (float) $slips->sum('net_pay');
+            $monthStart = $month->copy()->startOfMonth()->toDateString();
+            $monthEnd = $month->copy()->endOfMonth()->toDateString();
+            $monthSlips = $submittedSlips->filter(fn ($s) => $this->salarySlipInPeriod($s, $monthStart, $monthEnd));
+            $gross[] = (float) $monthSlips->sum('gross_pay');
+            $net[] = (float) $monthSlips->sum('net_pay');
         }
 
-        return [
-            'labels' => $labels,
-            'gross' => $gross,
-            'net' => $net,
-        ];
+        return compact('labels', 'gross', 'net');
     }
 
-    protected function monthlyDisbursementTrend(array $filters = []): array
+    /**
+     * @param  Collection<int, array<string, mixed>>  $payments
+     * @return array{labels: array<int, string>, series: array<int, float>}
+     */
+    protected function monthlyDisbursementTrendFromPayments(Collection $payments): array
     {
         $labels = [];
         $series = [];
@@ -140,13 +157,30 @@ class PayrollService
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
             $labels[] = $month->format('M Y');
-            $monthFilters = array_merge($filters, [
-                'from_date' => $month->copy()->startOfMonth()->toDateString(),
-                'to_date' => $month->copy()->endOfMonth()->toDateString(),
-            ]);
-            $series[] = (float) collect($this->repository->getEmployeePayments($monthFilters))->sum('paid_amount');
+            $monthStart = $month->copy()->startOfMonth()->toDateString();
+            $monthEnd = $month->copy()->endOfMonth()->toDateString();
+            $series[] = (float) $payments
+                ->filter(fn ($p) => ($p['posting_date'] ?? '') >= $monthStart && ($p['posting_date'] ?? '') <= $monthEnd)
+                ->sum('paid_amount');
         }
 
         return compact('labels', 'series');
+    }
+
+    /**
+     * @param  array<string, mixed>  $slip
+     */
+    protected function salarySlipInPeriod(array $slip, string $fromDate, string $toDate): bool
+    {
+        $start = $slip['start_date'] ?? null;
+        $end = $slip['end_date'] ?? null;
+
+        if ($start && $end) {
+            return $start <= $toDate && $end >= $fromDate;
+        }
+
+        $postingDate = $slip['posting_date'] ?? null;
+
+        return $postingDate && $postingDate >= $fromDate && $postingDate <= $toDate;
     }
 }

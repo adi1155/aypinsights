@@ -19,7 +19,7 @@ class ExecutiveDashboardSeeder extends Seeder
     {
         $permissions = [
             'view daily closing', 'view ap dashboard', 'view ar dashboard',
-            'view expense dashboard', 'view payroll dashboard', 'view attendance dashboard', 'view production dashboard', 'manage users', 'manage companies',
+            'view expense dashboard', 'view payroll dashboard', 'view attendance dashboard', 'view production dashboard', 'manage users', 'manage roles', 'manage companies',
             'view audit logs', 'export reports',
         ];
 

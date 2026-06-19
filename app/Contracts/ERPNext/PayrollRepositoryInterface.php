@@ -33,4 +33,14 @@ interface PayrollRepositoryInterface
      * @return array<int, array<string, mixed>>
      */
     public function getEmployeePayments(array $filters = []): array;
+
+    /**
+     * Employee-wise payroll summary for the selected period.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    /**
+     * @param  array<int, array<string, mixed>>  $preloadedSlips
+     */
+    public function getEmployeePayrollSummary(array $filters = [], array $preloadedSlips = []): array;
 }
